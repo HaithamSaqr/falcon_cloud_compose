@@ -4,8 +4,8 @@
 # One command spins up an isolated stack (API + Angular web) for a customer.
 # Everything is derived from the customer NAME: container names, network,
 # subdomains, and the data directory. All stateful data lives in host
-# bind-mounts under /opt/falconerp/<name>/, so image upgrades (manual OR via
-# watchtower) recreate the containers but NEVER touch the data.
+# bind-mounts under /opt/<name>/, so image upgrades (manual OR via watchtower)
+# recreate the containers but NEVER touch the data.
 #
 # Usage:
 #   ./run.sh install --name eskan --api-port 5001 --web-port 5021 [--domain falcon-v.com]
@@ -23,7 +23,7 @@ set -euo pipefail
 
 # ---- defaults ---------------------------------------------------------------
 DOMAIN_DEFAULT="falcon-v.com"
-BASE_DIR="${FALCON_BASE_DIR:-/opt/falconerp}"
+BASE_DIR="${FALCON_BASE_DIR:-/opt}"   # each customer → /opt/<name>/
 API_IMAGE="haithamsakr/falconerpapi:latest"
 WEB_IMAGE="haithamsakr/falconerpangular:latest"
 WATCHTOWER_TOKEN="falcon-update-token-2024"
@@ -76,6 +76,7 @@ write_stack() {
   local dir; dir="$(customer_dir)"
   mkdir -p "$dir/etc" "$dir/uploads" "$dir/app-data" \
     || die "Cannot create $dir (try: sudo $0 ...)."
+  touch "$dir/.falcon"   # marker so `list` finds our stacks among other /opt dirs
 
   # .env — shell vars expand here (unquoted heredoc).
   cat > "$dir/.env" <<ENV
@@ -150,7 +151,7 @@ dc() {  # run compose for the current NAME's stack
 
 # ---- shared watchtower (one per host, no port collision) --------------------
 ensure_watchtower() {
-  local dir="$BASE_DIR/_watchtower"
+  local dir="$BASE_DIR/.falcon-watchtower"   # dot-hidden, out of the customer list
   mkdir -p "$dir"
   cat > "$dir/docker-compose.yml" <<YAML
 services:
@@ -214,9 +215,8 @@ case "$ACTION" in
     ;;
   list)
     info "Installed customers under $BASE_DIR:"
-    for d in "$BASE_DIR"/*/; do
-      n="$(basename "$d")"; [[ "$n" == _* ]] && continue
-      [[ -f "$d/docker-compose.yml" ]] && echo "  • $n"
+    for d in "$BASE_DIR"/*/; do        # dot-dirs (.falcon-watchtower) auto-skipped
+      [[ -f "$d/.falcon" ]] && echo "  • $(basename "$d")"
     done
     echo
     docker ps --filter "label=com.docker.compose.project" \

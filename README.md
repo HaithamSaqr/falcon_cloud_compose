@@ -2,8 +2,9 @@
 
 مثبّت نظام فالكون بالـ Docker Compose. أمر واحد يشغّل ستاك معزول لكل عميل
 (API + واجهة Angular). كل شيء يُشتق من **اسم العميل**: أسماء الحاويات،
-الشبكة، الساب دومين، ومجلد البيانات. البيانات كلها في
-`/opt/falconerp/<name>/` — لذلك ترقية الإيمدج **لا تفقد البيانات**.
+الشبكة، الساب دومين، ومجلد البيانات. كل عميل مجلد مستقل تحت
+`/opt/<name>/` — لذلك ترقية الإيمدج **لا تفقد البيانات**، ويمكن رؤية كل
+عميل بوضوح على السيرفر.
 
 ## التثبيت من الجيت هب (سطر واحد)
 
@@ -31,7 +32,7 @@ cd falcon_cloud_compose
 | الشبكة            | `eskanerp-net`                |
 | ساب دومين API     | `eskanapi.falcon-v.com`       |
 | ساب دومين الويب   | `eskan.falcon-v.com`          |
-| مجلد البيانات     | `/opt/falconerp/eskan/`       |
+| مجلد البيانات     | `/opt/eskan/`                 |
 
 `--domain` يغيّر النطاق (الافتراضي `falcon-v.com`).
 
@@ -44,7 +45,7 @@ cd falcon_cloud_compose
 **لماذا البيانات آمنة:** كل البيانات على المضيف في bind-mounts:
 
 ```
-/opt/falconerp/eskan/
+/opt/eskan/
 ├── etc/         → /etc/falconerp
 ├── uploads/     → /app/wwwroot/uploads
 └── app-data/    → /app/App_Data   (servers.xml + مفاتيح DataProtection)
@@ -71,4 +72,4 @@ cd falcon_cloud_compose
 ./run.sh down --name eskan    # إيقاف (البيانات تبقى)
 ```
 
-المسار الأساسي `/opt/falconerp` قابل للتغيير عبر `FALCON_BASE_DIR`.
+المسار الأساسي `/opt` قابل للتغيير عبر `FALCON_BASE_DIR`.
