@@ -109,7 +109,13 @@ services:
       - ./app-data:/app/App_Data          # servers.xml + DataProtection keys
     healthcheck:
       disable: true
-    networks: [erpnet]
+    networks:
+      erpnet:
+        # The Angular image's nginx proxies to the hostname "falconerpapi".
+        # A per-network alias keeps a unique container name per customer while
+        # nginx still resolves the API on each customer's own network.
+        aliases:
+          - falconerpapi
     restart: unless-stopped
 
   web:
@@ -121,6 +127,8 @@ services:
       API_URL: "https://${CUSTOMER}api.${DOMAIN}/api"
     volumes:
       - ./etc:/etc/falconerp
+    depends_on:
+      - api                              # start API first so nginx resolves it
     healthcheck:
       disable: true
     networks: [erpnet]
@@ -187,6 +195,10 @@ case "$ACTION" in
     ;;
   upgrade)
     need_name
+    dir="$(customer_dir)"
+    [[ -f "$dir/.env" ]] || die "No stack for '$NAME'. Run install first."
+    set -a; . "$dir/.env"; set +a        # reload saved ports/domain/images
+    write_stack >/dev/null               # re-render compose (picks up template fixes)
     dc pull
     dc up -d
     ok "Upgraded '$NAME' to latest image. Data untouched."
