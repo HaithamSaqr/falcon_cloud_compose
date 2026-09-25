@@ -86,6 +86,8 @@ API_PORT=$API_PORT
 WEB_PORT=$WEB_PORT
 API_IMAGE=$API_IMAGE
 WEB_IMAGE=$WEB_IMAGE
+WATCHTOWER_URL=http://host.docker.internal:$WATCHTOWER_PORT
+WATCHTOWER_TOKEN=$WATCHTOWER_TOKEN
 ENV
 
   # docker-compose.yml — QUOTED heredoc so ${VAR} stays literal and is
@@ -100,9 +102,13 @@ services:
     environment:
       # Multi-tenant: TenantResolutionMiddleware resolves the per-request
       # connection from /app/App_Data/servers.xml (persisted in ./app-data).
+      AppVersion__WatchtowerUrl: "${WATCHTOWER_URL}"
+      AppVersion__WatchtowerToken: "${WATCHTOWER_TOKEN}"
       Webhooks__Whatsapp: "https://${CUSTOMER}api.${DOMAIN}/api/WbWebhooks"
       Webhooks__Salla: "https://${CUSTOMER}api.${DOMAIN}/api/WbStoreWebhooks/salla"
       Webhooks__Zid: "https://${CUSTOMER}api.${DOMAIN}/api/WbStoreWebhooks/zid"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     volumes:
       # Per-customer bind-mounts → survive image upgrades & watchtower pulls.
       - ./etc:/etc/falconerp
@@ -166,6 +172,7 @@ services:
       - WATCHTOWER_POLL_INTERVAL=86400
       - WATCHTOWER_LABEL_ENABLE=false        # watches EVERY container on the host
       - WATCHTOWER_HTTP_API_UPDATE=true
+      - WATCHTOWER_HTTP_API_PERIODIC_POLLS=true
       - WATCHTOWER_HTTP_API_METRICS=true
       - WATCHTOWER_HTTP_API_TOKEN=$WATCHTOWER_TOKEN
       - DOCKER_API_VERSION=1.44
